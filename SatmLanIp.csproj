@@ -6,7 +6,7 @@
     <Product>SatmLanIp</Product>
     <Version>1.0.0</Version>
     <Authors>古月木兆</Authors>
-    <Description>LAN / VPN IP co-op for Shift at Midnight (BepInEx IL2CPP; raw UDP room + Fusion Direct)</Description>
+    <Description>LAN / VPN IP co-op for Shift at Midnight (raw UDP room + Fusion Direct)</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
