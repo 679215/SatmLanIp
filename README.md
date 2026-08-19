@@ -33,7 +33,7 @@
 ## 创作者
 
 - @679215 承担核心开发工作与大量测试任务
-- @Littps 在前期方向制定提供部分思路,在后期参与一定量测试任务
+- @Littps 在前期方向制定提供思路,在后期参与一定量测试任务
 
 ## 兼容性
 - **BepInEx：** [BepInExPack IL2CPP](https://thunderstore.io/c/shift-at-midnight/p/BepInEx/BepInExPack_IL2CPP/) `6.0.755`
