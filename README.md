@@ -30,6 +30,20 @@
 4. **加入方：** 加入 → 输入房主 IP（非默认端口一并填写）→ 连接。
 5. 全员准备 → 按大厅提示开始。
 
+## 异地组网
+
+与朋友使用**官方服务器**（Photon 云服）联机时若卡顿、延迟高，可尝试改用本模组，并通过下方异地组网方式建立直连。
+
+不在同一局域网时，先用 **VPN / 虚拟局域网** 把双方连到同一虚拟网段，再按上面步骤用 **VPN 分配的 IPv4** 开房、加入。
+
+- 加入方填写的必须是 **组网后的虚拟 IP**（不要填公网 IP、不要填未组网时的本地局域网 IP）。
+- 延迟取决于组网质量；丢包或断线时先检查 VPN 是否仍在线。
+
+**推荐工具（任选其一，与本模组无隶属关系）：**
+
+- [Tailscale](https://github.com/tailscale/tailscale) — 基于 WireGuard 的虚拟组网，跨平台、配置简单；联机时使用 Tailscale 分配给房主的 IPv4。
+- [connecttool-qt](https://github.com/moeleak/connecttool-qt) — 图形化异地组网工具，支持 TUN 虚拟网卡模式；联机时使用组网后显示的虚拟 IPv4。
+
 ## 兼容性
 - **BepInEx：** [BepInExPack IL2CPP](https://thunderstore.io/c/shift-at-midnight/p/BepInEx/BepInExPack_IL2CPP/) `6.0.755`
 
