@@ -30,11 +30,6 @@
 4. **加入方：** 加入 → 输入房主 IP（非默认端口一并填写）→ 连接。
 5. 全员准备 → 按大厅提示开始。
 
-## 创作者
-
-- 679215 承担核心开发工作与大量测试任务
-- Littps 在前期方向制定提供思路,在后期参与一定量测试任务
-
 ## 兼容性
 - **BepInEx：** [BepInExPack IL2CPP](https://thunderstore.io/c/shift-at-midnight/p/BepInEx/BepInExPack_IL2CPP/) `6.0.755`
 
