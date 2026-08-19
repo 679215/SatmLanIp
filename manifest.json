@@ -1,6 +1,6 @@
 {
   "name": "SatmLanIp",
-  "version_number": "1.0.0",
+  "version_number": "1.0.1",
   "website_url": "https://github.com/679215/SatmLanIp",
   "description": "Shift at Midnight 局域网联机：LAN/VPN IP 开房加入，双方均需安装。",
   "dependencies": [
