@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="SatmLanIp.csproj" />
+  <Project Path="SatmLanIp.Tests/SatmLanIp.Tests.csproj" />
+</Solution>

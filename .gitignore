@@ -1,0 +1,33 @@
+# Build
+bin/
+obj/
+SatmLanIp.Tests/bin/
+SatmLanIp.Tests/obj/
+*.user
+.vs/
+*.dll
+*.pdb
+*.mdb
+
+# Keep Thunderstore package icon
+!icon.png
+
+# Game / BepInEx interop — never publish
+libs/*
+!libs/README.md
+
+# Local configs / logs
+*.cfg
+*.log
+LogOutput.log
+
+# Agent / local tooling (not part of the mod)
+.agents/
+skills-lock.json
+thunderstore-stage/
+*-thunderstore.zip
+
+# OS junk
+Thumbs.db
+Desktop.ini
+.DS_Store

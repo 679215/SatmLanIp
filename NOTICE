@@ -1,0 +1,22 @@
+SatmLanIp
+Copyright (c) 2026 古月木兆
+Licensed under the MIT License (see LICENSE).
+
+BepInEx and related tooling are not redistributed in this repository.
+
+Third-party (runtime / build):
+
+- BepInEx 6.0.0-be.755 — LGPL-2.1-only — https://github.com/BepInEx/BepInEx
+- HarmonyX 2.10.2 — MIT — https://github.com/BepInEx/HarmonyX
+- Il2CppInterop 1.5.1-ci.829 — LGPL-3.0-only — https://github.com/BepInEx/Il2CppInterop
+- MonoMod, AsmResolver, AssetRipper, Cpp2IL, Iced, and other transitive packages —
+  retain their respective license and copyright notices; see `packages.lock.json` and
+  each package's upstream NuGet metadata for the exact resolved version and license.
+
+The project's MIT license applies only to SatmLanIp-authored source files. It does not
+relicense third-party packages, game assemblies, or other external assets.
+
+Game assemblies (Assembly-CSharp, Fusion.*, UnityEngine.*, etc.) are proprietary.
+Do not commit or redistribute them.
+
+icon.png is original artwork by the project author.

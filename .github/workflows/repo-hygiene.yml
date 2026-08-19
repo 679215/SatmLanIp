@@ -1,0 +1,48 @@
+name: repo-hygiene
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  no-proprietary-blobs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Fail if game libs or binaries are tracked
+        run: |
+          set -euo pipefail
+          bad=$(git ls-files | grep -E '\.(dll|pdb|mdb)$|^libs/|/libs/' | grep -Ev '^libs/README\.md$' || true)
+          bad_cfg=$(git ls-files | grep -E '\.cfg$|\.log$' || true)
+          if [ -n "$bad" ] || [ -n "$bad_cfg" ]; then
+            echo "Tracked proprietary or secret-prone paths:"
+            echo "$bad"
+            echo "$bad_cfg"
+            exit 1
+          fi
+          test -f LICENSE
+          test -f NOTICE
+          test -f README.md
+          test -f icon.png
+          test -f manifest.json
+          test -f libs/README.md
+      - name: Scan tracked text for credential and local-path leaks
+        run: |
+          set -euo pipefail
+          credential_hits=$(git grep -n -I -E -- \
+            '-----BEGIN (RSA|DSA|EC|OPENSSH|PGP) PRIVATE KEY-----|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|AIza[0-9A-Za-z_-]{20,}' \
+            -- ':!packages.lock.json' ':!SatmLanIp.Tests/packages.lock.json' ':!.github/workflows/repo-hygiene.yml' || true)
+          local_path_hits=$(git grep -n -I -E -- \
+            '(^|[^A-Za-z0-9])([A-Za-z]:[\\/](Users|Documents and Settings)[\\/]|/Users/|/home/)' \
+            -- ':!packages.lock.json' ':!SatmLanIp.Tests/packages.lock.json' ':!.github/workflows/repo-hygiene.yml' || true)
+          if [ -n "$credential_hits" ] || [ -n "$local_path_hits" ]; then
+            echo "Potential credential or local-path leak detected:"
+            printf '%s\n' "$credential_hits" "$local_path_hits"
+            exit 1
+          fi
+      - name: Restore NuGet (compile refs only; no game build)
+        run: dotnet restore SatmLanIp.csproj --locked-mode
+      - name: Pure logic tests (no game interop)
+        run: |
+          dotnet restore SatmLanIp.Tests/SatmLanIp.Tests.csproj --locked-mode
+          dotnet test SatmLanIp.Tests/SatmLanIp.Tests.csproj --no-restore -v minimal
