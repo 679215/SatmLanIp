@@ -31,11 +31,11 @@
 5. 全员准备 → 按大厅提示开始。
 
 ## 创作者
-- @679215 承担核心开发工作与大量测试任务
-- @Littps 在前期方向制定提供部分思路,在后期参与一定量测试任务
+
+- **@679215** — 负责核心开发，承担大量测试
+- **@Littps** — 前期参与方向制定并提供部分思路，后期参与部分测试
 
 ## 兼容性
-
 - **BepInEx：** [BepInExPack IL2CPP](https://thunderstore.io/c/shift-at-midnight/p/BepInEx/BepInExPack_IL2CPP/) `6.0.755`
 
 ## 免责声明
