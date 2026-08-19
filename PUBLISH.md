@@ -5,7 +5,7 @@ Publish **only** this directory — not the parent crash-analysis workspace.
 ## Before upload
 
 1. Create a Thunderstore team (ASCII letters, numbers, underscore).
-2. Replace `YOUR_USER` in `README.md` and `manifest.json`.
+2. Replace `YOUR_USER` in `README.md` and `manifest.json` (default: `679215`).
 3. Validate: https://thunderstore.io/tools/manifest-v1-validator/
 
 Dependency string: `{YourTeam}-SatmLanIp-1.0.0`  

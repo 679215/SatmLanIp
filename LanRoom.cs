@@ -141,7 +141,7 @@ internal static class LanRoom
         playerCount = 1;
         readyMask = 0;
         occupiedMask = 1;
-        if (buf == null || len < offset + SnapPayloadSize)
+        if (buf == null || offset < 0 || len < offset + SnapPayloadSize)
             return false;
         maxPlayers = ClampMax(buf[offset]);
         playerCount = buf[offset + 1];
