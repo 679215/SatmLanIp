@@ -1,8 +1,6 @@
 # Build
-bin/
-obj/
-SatmLanIp.Tests/bin/
-SatmLanIp.Tests/obj/
+**/bin/
+**/obj/
 *.user
 .vs/
 *.dll
@@ -25,7 +23,7 @@ LogOutput.log
 .agents/
 skills-lock.json
 thunderstore-stage/
-*-thunderstore.zip
+*.zip
 
 # OS junk
 Thumbs.db

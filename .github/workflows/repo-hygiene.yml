@@ -26,26 +26,26 @@ jobs:
           test -f LICENSE
           test -f NOTICE
           test -f README.md
-          test -f icon.png
-          test -f manifest.json
+          test -f src/SatmLanIp/icon.png
+          test -f src/SatmLanIp/manifest.json
           test -f libs/README.md
       - name: Scan tracked text for credential and local-path leaks
         run: |
           set -euo pipefail
           credential_hits=$(git grep -n -I -E -- \
             '-----BEGIN (RSA|DSA|EC|OPENSSH|PGP) PRIVATE KEY-----|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|AIza[0-9A-Za-z_-]{20,}' \
-            -- ':!packages.lock.json' ':!SatmLanIp.Tests/packages.lock.json' ':!.github/workflows/repo-hygiene.yml' || true)
+            -- ':!src/SatmLanIp/packages.lock.json' ':!tests/SatmLanIp.Tests/packages.lock.json' ':!.github/workflows/repo-hygiene.yml' || true)
           local_path_hits=$(git grep -n -I -E -- \
             '(^|[^A-Za-z0-9])([A-Za-z]:[\\/](Users|Documents and Settings)[\\/]|/Users/|/home/)' \
-            -- ':!packages.lock.json' ':!SatmLanIp.Tests/packages.lock.json' ':!.github/workflows/repo-hygiene.yml' || true)
+            -- ':!src/SatmLanIp/packages.lock.json' ':!tests/SatmLanIp.Tests/packages.lock.json' ':!.github/workflows/repo-hygiene.yml' || true)
           if [ -n "$credential_hits" ] || [ -n "$local_path_hits" ]; then
             echo "Potential credential or local-path leak detected:"
             printf '%s\n' "$credential_hits" "$local_path_hits"
             exit 1
           fi
       - name: Restore NuGet (compile refs only; no game build)
-        run: dotnet restore SatmLanIp.csproj --locked-mode
+        run: dotnet restore src/SatmLanIp/SatmLanIp.csproj --locked-mode
       - name: Pure logic tests (no game interop)
         run: |
-          dotnet restore SatmLanIp.Tests/SatmLanIp.Tests.csproj --locked-mode
-          dotnet test SatmLanIp.Tests/SatmLanIp.Tests.csproj --no-restore -v minimal --filter "Category!=KnownFailure"
+          dotnet restore tests/SatmLanIp.Tests/SatmLanIp.Tests.csproj --locked-mode
+          dotnet test tests/SatmLanIp.Tests/SatmLanIp.Tests.csproj --no-restore -v minimal --filter "Category!=KnownFailure"

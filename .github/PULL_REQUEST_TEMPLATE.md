@@ -2,8 +2,8 @@
 
 ## Tested
 
-- [ ] `dotnet restore SatmLanIp.Tests/SatmLanIp.Tests.csproj --locked-mode`
-- [ ] `dotnet test SatmLanIp.Tests/SatmLanIp.Tests.csproj --no-restore`
+- [ ] `dotnet restore tests/SatmLanIp.Tests/SatmLanIp.Tests.csproj --locked-mode`
+- [ ] `dotnet test tests/SatmLanIp.Tests/SatmLanIp.Tests.csproj --no-restore --filter "Category!=KnownFailure"`
 
 ## Checklist
 
