@@ -55,7 +55,7 @@
 | 源码 | [github.com/679215/SatmLanIp](https://github.com/679215/SatmLanIp) |
 | Thunderstore | [SatmLanIp](https://thunderstore.io/c/shift-at-midnight/p/679215/SatmLanIp/) |
 | 模组社区 | [Shift at Midnight](https://thunderstore.io/c/shift-at-midnight/) |
-| 参与贡献 | [CONTRIBUTING](docs/CONTRIBUTING.md) |
+| 参与贡献 | [CONTRIBUTING](https://github.com/679215/SatmLanIp/blob/main/docs/CONTRIBUTING.md) |
 
 ## 免责声明
 
