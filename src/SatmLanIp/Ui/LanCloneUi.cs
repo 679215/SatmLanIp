@@ -684,6 +684,7 @@ internal static class LanCloneUi
             case LanState.Listen:
                 sb.Append(s.LocalReady ? "等待加入（已准备）\n" : "等待加入\n");
                 sb.Append(LanLocalIp.FormatAdvertise(Plugin.ListenPort));
+                sb.Append(FormatBuildLine());
                 break;
             case LanState.Connecting:
                 string peer = s.PeerEndPoint != null && s.PeerEndPoint.Length > 0 ? s.PeerEndPoint : "";
@@ -706,6 +707,7 @@ internal static class LanCloneUi
                     sb.Append('\n');
                     sb.Append(LanLocalIp.FormatAdvertise(Plugin.ListenPort));
                 }
+                sb.Append(FormatBuildLine());
                 break;
             case LanState.Fail:
                 return s.FailReason != null && s.FailReason.Length > 0 ? ("失败: " + s.FailReason) : "连接失败";
@@ -715,6 +717,13 @@ internal static class LanCloneUi
                 return "";
         }
         return sb.ToString();
+    }
+
+    internal static string FormatBuildLine()
+    {
+        LanBuild.EnsureResolved();
+        uint b = LanBuild.Current;
+        return b > 0 ? "\nbuild " + b.ToString() : "\nbuild 未知（无法校验版本）";
     }
 
     private static int TryReadMaxFromClone()
@@ -1101,9 +1110,11 @@ internal static class LanCloneUi
             s.IndexOf("Max Player", StringComparison.OrdinalIgnoreCase) >= 0)
             return false;
         return s.IndexOf("大厅名称", StringComparison.Ordinal) >= 0
+            || s.IndexOf("房间名称", StringComparison.Ordinal) >= 0
             || s.IndexOf("房间类型", StringComparison.Ordinal) >= 0
             || s.IndexOf("创建密码", StringComparison.Ordinal) >= 0
             || s.IndexOf("Lobby Name", StringComparison.OrdinalIgnoreCase) >= 0
+            || s.IndexOf("Room Name", StringComparison.OrdinalIgnoreCase) >= 0
             || s.IndexOf("Room Type", StringComparison.OrdinalIgnoreCase) >= 0
             || s.IndexOf("Create Password", StringComparison.OrdinalIgnoreCase) >= 0
             || s.Equals("名称", StringComparison.Ordinal)
@@ -1363,5 +1374,23 @@ internal static class LanCloneUi
             throw new InvalidOperationException("SatmLanIp LanCloneUi 3p all ready: " + FormatLobbyStatus(three));
         if (!ShowLobbyReady(host) || LeaveLabel(host) != "离开房间")
             throw new InvalidOperationException("SatmLanIp LanCloneUi host chrome");
+        var client = new LanSession
+        {
+            State = LanState.Connected,
+            IsHost = false,
+            PlayerCount = 2,
+            MaxPlayers = 3,
+            OccupiedMask = 3,
+            ReadyMask = 3,
+        };
+        if (!FormatLobbyStatus(client).Contains("build "))
+            throw new InvalidOperationException("SatmLanIp LanCloneUi client build line: " + FormatLobbyStatus(client));
+        if (!IsRemovedFieldLabel("房间名称") || !IsRemovedFieldLabel("Room Name")
+            || !IsRemovedFieldLabel("大厅名称") || IsRemovedFieldLabel("人数 3"))
+            throw new InvalidOperationException("SatmLanIp LanCloneUi IsRemovedFieldLabel");
+        if (LanBuild.FormatMismatch(24837841u, 24450017u) != "游戏版本不一致 (build 24837841 vs 24450017)")
+            throw new InvalidOperationException("SatmLanIp LanCloneUi FormatMismatch");
+        if (!FormatBuildLine().Contains("未知"))
+            throw new InvalidOperationException("SatmLanIp LanCloneUi FormatBuildLine zero");
     }
 }

@@ -5,6 +5,17 @@
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.0.3] - 2026-08-22
+
+### 修复
+
+- 游戏更新（build `24837841`）后创建房间仍显示 Photon 房间名输入框；已补充「房间名称」/`Room Name` 过滤
+
+### 新增
+
+- 加入房间时比对双方 Steam 游戏 build；不一致时拒绝加入并提示 `游戏版本不一致 (build … vs …)`，避免跨版本进局后 Fusion 不同步
+- 局域网房间界面显示本机 `build …`（房主与加入方）；读不到 buildid 时仅警告，不阻止联机
+
 ## [1.0.2] - 2026-08-20
 
 ### 修复

@@ -79,6 +79,8 @@ public sealed class LanProtocolTests
     [InlineData(7)]  // StartMatch
     [InlineData(8)]  // Pose
     [InlineData(9)]  // RoomFull
+    [InlineData(10)] // MatchBusy
+    [InlineData(11)] // BuildMismatch
     public void LanProtocol_roundtrips_every_packet_type(int packetTypeId)
     {
         var packetType = (LanPacketType)packetTypeId;

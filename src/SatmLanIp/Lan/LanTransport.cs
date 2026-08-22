@@ -12,12 +12,14 @@ internal sealed class LanTransport
     private const float EchoWaitTimeoutSec = 1.5f;
     private const float HelloIntervalSec = 0.5f;
     private const float SnapIntervalSec = 0.5f;
+    private const float MismatchLogIntervalSec = 10f;
     private const int DrainCap = 64;
 
     private readonly LanSession _session = new LanSession();
     private readonly IPEndPoint[] _clients = new IPEndPoint[LanRoom.SlotCap];
     private readonly float[] _clientLastRx = new float[LanRoom.SlotCap];
     private readonly byte[] _pkt16 = new byte[LanProtocol.PacketSize];
+    private readonly byte[] _pktHello = new byte[LanProtocol.ExtendedPacketSize];
     private readonly byte[] _pktPose = new byte[LanProtocol.PacketSize + LanPose.PayloadSize];
     private readonly byte[] _pktSnap = new byte[LanProtocol.PacketSize + LanRoom.SnapPayloadSize];
     private readonly RxPkt[] _drainBuf = new RxPkt[DrainCap];
@@ -41,6 +43,8 @@ internal sealed class LanTransport
     private float _nextProbe;
     private float _nextSnap;
     private float _nextReadySend;
+    private string _mismatchLogEp = "";
+    private float _mismatchLogUntil;
 
     public LanSession Session => _session;
 
@@ -72,10 +76,14 @@ internal sealed class LanTransport
             _awaitingEcho = false;
             ResetRoomKeepMax();
             _session.PlayerCount = 1;
+            LanBuild.EnsureResolved();
             Plugin.LogSrc.LogInfo(
                 "[SatmLanIp] Host listen :" + port
                 + " max=" + _session.MaxPlayers
+                + " buildid=" + LanBuild.Current.ToString()
                 + " local=" + FormatEp(_udp.Client.LocalEndPoint as IPEndPoint));
+            if (LanBuild.Current == 0)
+                Plugin.LogSrc.LogWarning("[SatmLanIp] Host buildid=0 (无法校验版本)");
             SendSelfProbe(port);
         }
         catch (SocketException ex)
@@ -146,9 +154,13 @@ internal sealed class LanTransport
             _nextHelloOrHb = 0f;
             ClearClients();
             ResetRoomKeepMax();
+            LanBuild.EnsureResolved();
             Plugin.LogSrc.LogInfo(
                 "[SatmLanIp] Client connecting " + host + ":" + usePort.ToString()
-                + " sessionPort=" + Plugin.JoinPort);
+                + " sessionPort=" + Plugin.JoinPort
+                + " buildid=" + LanBuild.Current.ToString());
+            if (LanBuild.Current == 0)
+                Plugin.LogSrc.LogWarning("[SatmLanIp] Client buildid=0 (无法校验版本)");
         }
         catch (Exception ex)
         {
@@ -243,7 +255,7 @@ internal sealed class LanTransport
             if (now >= _nextHelloOrHb)
             {
                 _nextHelloOrHb = now + HelloIntervalSec;
-                SendTo(_clientHost, _clientPort, LanPacketType.Hello, NextSeq(), NowMs());
+                SendHello(_clientHost, _clientPort);
                 if (!_loggedFirstHello)
                 {
                     _loggedFirstHello = true;
@@ -303,12 +315,19 @@ internal sealed class LanTransport
         switch (type)
         {
             case LanPacketType.Hello:
-                HandleHello(remote, seq, unixMs);
+                HandleHello(remote, data, data.Length, seq, unixMs);
                 break;
 
             case LanPacketType.HelloAck:
                 if (_session.State == LanState.Connecting && !_session.IsHost)
                 {
+                    uint hostBuild = 0;
+                    LanProtocol.TryReadBuildPayload(data, data.Length, out hostBuild);
+                    if (LanBuild.ShouldReject(LanBuild.Current, hostBuild))
+                    {
+                        FailConnectingClient(LanBuild.FormatMismatch(LanBuild.Current, hostBuild));
+                        break;
+                    }
                     _hostEp = remote;
                     _session.PeerEndPoint = remote.ToString();
                     _session.State = LanState.Connected;
@@ -330,22 +349,19 @@ internal sealed class LanTransport
                 break;
 
             case LanPacketType.RoomFull:
-                if (_session.State == LanState.Connecting && !_session.IsHost)
-                {
-                    _session.State = LanState.Fail;
-                    _session.FailReason = "room full";
-                    Plugin.LogSrc.LogWarning("[SatmLanIp] Client room full");
-                    DisposeUdp();
-                }
+                FailConnectingClient("room full");
                 break;
 
             case LanPacketType.MatchBusy:
+                FailConnectingClient("match already started");
+                break;
+
+            case LanPacketType.BuildMismatch:
                 if (_session.State == LanState.Connecting && !_session.IsHost)
                 {
-                    _session.State = LanState.Fail;
-                    _session.FailReason = "match already started";
-                    Plugin.LogSrc.LogWarning("[SatmLanIp] Client match already started");
-                    DisposeUdp();
+                    uint hostBuild = 0;
+                    LanProtocol.TryReadBuildPayload(data, data.Length, out hostBuild);
+                    FailConnectingClient(LanBuild.FormatMismatch(LanBuild.Current, hostBuild));
                 }
                 break;
 
@@ -408,7 +424,7 @@ internal sealed class LanTransport
         }
     }
 
-    private void HandleHello(IPEndPoint remote, ushort seq, long unixMs)
+    private void HandleHello(IPEndPoint remote, byte[] data, int len, ushort seq, long unixMs)
     {
         if (!_session.IsHost || !_session.InRoom)
         {
@@ -431,10 +447,22 @@ internal sealed class LanTransport
         if (existing > 0)
         {
             BindClientSlot(existing, remote, UnityEngine.Time.unscaledTime);
-            SendTo(remote, LanPacketType.HelloAck, (ushort)existing, unixMs);
+            SendHelloAck(remote, (ushort)existing, unixMs);
             SendSnap();
             return;
         }
+
+        uint joinerBuild = 0;
+        LanProtocol.TryReadBuildPayload(data, len, out joinerBuild);
+        if (LanBuild.ShouldReject(LanBuild.Current, joinerBuild))
+        {
+            LogBuildMismatchThrottled(remote, joinerBuild);
+            SendBuildMismatch(remote);
+            return;
+        }
+        if (joinerBuild == 0)
+            Plugin.LogSrc.LogWarning(
+                "[SatmLanIp] Host Hello from " + FormatEp(remote) + " build unknown (joiner buildid=0)");
 
         int free = FirstFreeSlot();
         if (free < 0)
@@ -448,12 +476,36 @@ internal sealed class LanTransport
         RecountPlayers();
         _session.State = LanState.Connected;
         RefreshPeerSummary();
-        SendTo(remote, LanPacketType.HelloAck, (ushort)free, unixMs);
+        SendHelloAck(remote, (ushort)free, unixMs);
         SendSnap();
         Plugin.LogSrc.LogInfo(
             "[SatmLanIp] Host accepted slot=" + free + " peer=" + FormatEp(remote)
             + " count=" + _session.PlayerCount + "/" + _session.MaxPlayers);
         NoPhotonProbe.OnConnected();
+    }
+
+    private void FailConnectingClient(string reason)
+    {
+        if (_session.State != LanState.Connecting || _session.IsHost)
+            return;
+        _session.State = LanState.Fail;
+        _session.FailReason = reason ?? "";
+        Plugin.LogSrc.LogWarning("[SatmLanIp] Client connect failed: " + _session.FailReason);
+        DisposeUdp();
+    }
+
+    private void LogBuildMismatchThrottled(IPEndPoint remote, uint joinerBuild)
+    {
+        string ep = FormatEp(remote);
+        float now = UnityEngine.Time.unscaledTime;
+        if (ep == _mismatchLogEp && now < _mismatchLogUntil)
+            return;
+        _mismatchLogEp = ep;
+        _mismatchLogUntil = now + MismatchLogIntervalSec;
+        Plugin.LogSrc.LogWarning(
+            "[SatmLanIp] Host reject build mismatch from " + ep
+            + " host=" + LanBuild.Current.ToString()
+            + " joiner=" + joinerBuild.ToString());
     }
 
     private void HandleHeartbeat(IPEndPoint remote, ushort seq, long unixMs)
@@ -756,6 +808,53 @@ internal sealed class LanTransport
         }
     }
 
+    private void SendHello(string host, int port)
+    {
+        if (_udp == null || host == null || host.Length == 0 || port < 1)
+            return;
+        try
+        {
+            int n = LanProtocol.WriteHelloPacket(_pktHello, NextSeq(), NowMs(), LanBuild.Current);
+            int sent = _udp.Send(_pktHello, n, host, port);
+            if (!_loggedFirstHello)
+                Plugin.LogSrc.LogInfo("[SatmLanIp] send Hello n=" + sent + " -> " + host + ":" + port.ToString());
+        }
+        catch (Exception ex)
+        {
+            Plugin.LogSrc.LogWarning("[SatmLanIp] send failed: " + ex.GetType().Name + ": " + ex.Message);
+        }
+    }
+
+    private void SendHelloAck(IPEndPoint ep, ushort slot, long unixMs)
+    {
+        if (ep == null)
+            return;
+        try
+        {
+            int n = LanProtocol.WriteHelloAckPacket(_pktHello, slot, unixMs, LanBuild.Current);
+            _udp.Send(_pktHello, n, ep);
+        }
+        catch (Exception ex)
+        {
+            Plugin.LogSrc.LogWarning("[SatmLanIp] send failed: " + ex.GetType().Name + ": " + ex.Message);
+        }
+    }
+
+    private void SendBuildMismatch(IPEndPoint ep)
+    {
+        if (ep == null)
+            return;
+        try
+        {
+            int n = LanProtocol.WriteBuildMismatchPacket(_pktHello, LanBuild.Current);
+            _udp.Send(_pktHello, n, ep);
+        }
+        catch (Exception ex)
+        {
+            Plugin.LogSrc.LogWarning("[SatmLanIp] send failed: " + ex.GetType().Name + ": " + ex.Message);
+        }
+    }
+
     private void SendSelfProbe(int port)
     {
         if (_udp == null)
@@ -1004,7 +1103,7 @@ internal sealed class LanTransport
                 if (pkt.Data.Length >= LanProtocol.PacketSize)
                 {
                     byte t = pkt.Data[5];
-                    if (t >= (byte)LanPacketType.Hello && t <= (byte)LanPacketType.MatchBusy)
+                    if (t >= (byte)LanPacketType.Hello && t <= (byte)LanProtocol.MaxPacketType)
                         pri = LanProtocol.DrainPriority((LanPacketType)t);
                 }
                 if (pri != pass)

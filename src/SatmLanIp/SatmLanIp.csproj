@@ -4,7 +4,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>SatmLanIp</AssemblyName>
     <Product>SatmLanIp</Product>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Authors>古月木兆</Authors>
     <Description>LAN / VPN IP co-op for Shift at Midnight (raw UDP room + Fusion Direct)</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

@@ -20,6 +20,7 @@
     <Compile Include="..\..\src\SatmLanIp\Lan\LanConfig.cs" Link="src\LanConfig.cs" />
     <Compile Include="..\..\src\SatmLanIp\Lan\LanLocalIp.cs" Link="src\LanLocalIp.cs" />
     <Compile Include="..\..\src\SatmLanIp\Lan\LanHostParse.cs" Link="src\LanHostParse.cs" />
+    <Compile Include="..\..\src\SatmLanIp\Lan\LanBuild.cs" Link="src\LanBuild.cs" />
     <Compile Include="..\..\src\SatmLanIp\Lan\LanFusionStart.cs" Link="src\LanFusionStart.cs" />
     <Compile Include="..\..\src\SatmLanIp\Lan\LanSession.cs" Link="src\LanSession.cs" />
   </ItemGroup>

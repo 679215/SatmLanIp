@@ -50,6 +50,7 @@ public class Plugin : BasePlugin
             throw new InvalidOperationException("SatmLanIp PluginInfo self-check failed");
 
         LanProtocol.SelfCheck();
+        LanBuild.SelfCheck();
         LanHostParse.SelfCheck();
         LanRoom.SelfCheck();
         LanPose.SelfCheck();
@@ -65,6 +66,9 @@ public class Plugin : BasePlugin
         LanMenuInjector.SelfCheck();
         LanConfig.SelfCheck();
         LanCloneUi.SelfCheck();
+
+        LanBuild.DataPathProvider = () => Application.dataPath;
+        LanBuild.Resolve();
 
         _enabled = Config.Bind("General", "Enabled", LanConfig.DefaultEnabled,
             "Master switch. Default true.");
@@ -180,7 +184,8 @@ public class Plugin : BasePlugin
 
         LogSrc.LogInfo(
             $"[SatmLanIp] {PluginInfo.Name} {PluginInfo.Version} loaded (Enabled={Enabled}; " +
-            "ShowNativeMenu=" + ShowNativeMenu + "). " +
+            "ShowNativeMenu=" + ShowNativeMenu + "; buildid=" + LanBuild.Current.ToString() +
+            (LanBuild.Current == 0 ? " 无法校验版本" : "") + "). " +
             "菜单:局域网联机→创建/加入（创建房间后再选档/模式）。");
     }
 
@@ -228,5 +233,5 @@ internal static class PluginInfo
 {
     public const string GUID = "com.satmlanip";
     public const string Name = "SatmLanIp";
-    public const string Version = "1.0.2";
+    public const string Version = "1.0.3";
 }

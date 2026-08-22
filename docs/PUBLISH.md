@@ -8,7 +8,7 @@ Publish **only** this directory — not the parent crash-analysis workspace.
 2. Replace `YOUR_USER` in `README.md` and `src/SatmLanIp/manifest.json` (default: `679215`).
 3. Validate: https://thunderstore.io/tools/manifest-v1-validator/
 
-Dependency string: `{YourTeam}-SatmLanIp-1.0.2`  
+Dependency string: `{YourTeam}-SatmLanIp-1.0.3`  
 Category: `mods`
 
 ## Zip root
@@ -34,7 +34,7 @@ dotnet build src/SatmLanIp/SatmLanIp.csproj -c Release --no-restore
 dotnet restore tests/SatmLanIp.Tests/SatmLanIp.Tests.csproj --locked-mode
 dotnet test tests/SatmLanIp.Tests/SatmLanIp.Tests.csproj --no-restore --filter "Category!=KnownFailure"
 
-$ver = "1.0.2"
+$ver = "1.0.3"
 $stage = "thunderstore-stage"
 Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory $stage | Out-Null

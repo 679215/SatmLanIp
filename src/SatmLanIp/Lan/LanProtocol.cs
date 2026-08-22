@@ -15,17 +15,22 @@ internal enum LanPacketType : byte
     RoomFull = 9,
     /// <summary>Host already started match; join too late.</summary>
     MatchBusy = 10,
+    BuildMismatch = 11,
 }
 
 /// <summary>
 /// 16-byte datagram: magic BE "SLIP" | ver | type | seq LE | unixMs LE
 /// RoomSnap v4 appends LanRoom.SnapPayloadSize bytes.
+/// Hello / HelloAck / BuildMismatch append 4-byte Steam buildid LE.
 /// </summary>
 internal static class LanProtocol
 {
     public const uint Magic = 0x534C4950; // S L I P
     public const byte Version = 4;
     public const int PacketSize = 16;
+    public const int BuildPayloadSize = 4;
+    public const int ExtendedPacketSize = PacketSize + BuildPayloadSize;
+    public const LanPacketType MaxPacketType = LanPacketType.BuildMismatch;
 
     public static byte[] Encode(LanPacketType type, ushort seq, long unixMs)
     {
@@ -56,6 +61,47 @@ internal static class LanProtocol
             buf[offset + 14] = (byte)((u >> 48) & 0xFF);
             buf[offset + 15] = (byte)((u >> 56) & 0xFF);
         }
+    }
+
+    public static void WriteBuildPayload(byte[] buf, int offset, uint buildId)
+    {
+        buf[offset] = (byte)(buildId & 0xFF);
+        buf[offset + 1] = (byte)((buildId >> 8) & 0xFF);
+        buf[offset + 2] = (byte)((buildId >> 16) & 0xFF);
+        buf[offset + 3] = (byte)((buildId >> 24) & 0xFF);
+    }
+
+    public static bool TryReadBuildPayload(byte[] buf, int len, out uint buildId)
+    {
+        buildId = 0;
+        if (buf == null || len < ExtendedPacketSize)
+            return false;
+        buildId = (uint)(buf[PacketSize]
+            | (buf[PacketSize + 1] << 8)
+            | (buf[PacketSize + 2] << 16)
+            | (buf[PacketSize + 3] << 24));
+        return true;
+    }
+
+    public static int WriteHelloPacket(byte[] buf, ushort seq, long unixMs, uint buildId)
+    {
+        WriteHeader(buf, 0, LanPacketType.Hello, seq, unixMs);
+        WriteBuildPayload(buf, PacketSize, buildId);
+        return ExtendedPacketSize;
+    }
+
+    public static int WriteHelloAckPacket(byte[] buf, ushort slot, long unixMs, uint buildId)
+    {
+        WriteHeader(buf, 0, LanPacketType.HelloAck, slot, unixMs);
+        WriteBuildPayload(buf, PacketSize, buildId);
+        return ExtendedPacketSize;
+    }
+
+    public static int WriteBuildMismatchPacket(byte[] buf, uint hostBuildId)
+    {
+        WriteHeader(buf, 0, LanPacketType.BuildMismatch, 0, 0);
+        WriteBuildPayload(buf, PacketSize, hostBuildId);
+        return ExtendedPacketSize;
     }
 
     public static int WritePosePacket(byte[] buf, ushort seq, float x, float y, float z, float yaw)
@@ -98,6 +144,7 @@ internal static class LanProtocol
             case LanPacketType.StartMatch:
             case LanPacketType.RoomFull:
             case LanPacketType.MatchBusy:
+            case LanPacketType.BuildMismatch:
                 return 0;
             case LanPacketType.Heartbeat:
             case LanPacketType.RoomSnap:
@@ -119,7 +166,7 @@ internal static class LanProtocol
         if (buf[4] != Version)
             return false;
         byte t = buf[5];
-        if (t < (byte)LanPacketType.Hello || t > (byte)LanPacketType.MatchBusy)
+        if (t < (byte)LanPacketType.Hello || t > (byte)MaxPacketType)
             return false;
         type = (LanPacketType)t;
         seq = (ushort)(buf[6] | (buf[7] << 8));
@@ -176,8 +223,25 @@ internal static class LanProtocol
         byte[] busy = Encode(LanPacketType.MatchBusy, 0, 0);
         if (!TryParse(busy, busy.Length, out LanPacketType tb, out _, out _) || tb != LanPacketType.MatchBusy)
             throw new InvalidOperationException("SatmLanIp MatchBusy");
+        byte[] ext = new byte[ExtendedPacketSize];
+        WriteHelloPacket(ext, 7, 42, 24837841u);
+        if (!TryParse(ext, ExtendedPacketSize, out LanPacketType th, out ushort sh, out long tm) ||
+            th != LanPacketType.Hello || sh != 7 || tm != 42)
+            throw new InvalidOperationException("SatmLanIp extended Hello header");
+        if (!TryReadBuildPayload(ext, ExtendedPacketSize, out uint hb) || hb != 24837841u)
+            throw new InvalidOperationException("SatmLanIp extended Hello build");
+        if (TryReadBuildPayload(ext, PacketSize, out uint shortBuild) && shortBuild != 0)
+            throw new InvalidOperationException("SatmLanIp short Hello build must be 0");
+        WriteHelloAckPacket(ext, 2, 0, 24450017u);
+        if (!TryReadBuildPayload(ext, ExtendedPacketSize, out uint ackBuild) || ackBuild != 24450017u)
+            throw new InvalidOperationException("SatmLanIp HelloAck build");
+        WriteBuildMismatchPacket(ext, 24837841u);
+        if (!TryParse(ext, ExtendedPacketSize, out LanPacketType tmis, out _, out _) ||
+            tmis != LanPacketType.BuildMismatch)
+            throw new InvalidOperationException("SatmLanIp BuildMismatch parse");
         if (DrainPriority(LanPacketType.Pose) <= DrainPriority(LanPacketType.Hello)
-            || DrainPriority(LanPacketType.Ready) != 0)
+            || DrainPriority(LanPacketType.Ready) != 0
+            || DrainPriority(LanPacketType.BuildMismatch) != 0)
             throw new InvalidOperationException("SatmLanIp DrainPriority");
     }
 }
